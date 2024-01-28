@@ -5,6 +5,7 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import os
 from dotenv import load_dotenv
+import datetime
 
 load_dotenv()
 
@@ -56,6 +57,17 @@ def dict_singers_and_songs():
     for p in range(len(song_titles)):
         print(f"{singers[p]} - {song_titles[p]}")
 
+def day_format(day):
+    if (day == 1) or (day == 21) or (day == 31):
+        suffix = 'st'
+    elif (day == 2) or (day == 22):
+        suffix = 'nd'
+    elif (day == 3) or (day == 23):
+        suffix = 'rd'
+    elif (4 <= day <= 20) or (24 <= day <= 30):
+        suffix = 'th'
+    return f"{day}{suffix}"
+
 
 # SPOTIFY AUTHENTICATION.
 sp = spotipy.Spotify(
@@ -68,14 +80,18 @@ sp = spotipy.Spotify(
         cache_path ="token.txt",
         open_browser=False,))
 
-
 user_id = sp.current_user()["id"]
+
 
 #Billboard Hot 100™ – Billboard
 desired_date = input("Which year do you want to travel to? Type the date in this format YYYY-MM-DD: ")
 url_top_songs = f"https://www.billboard.com/charts/hot-100/{desired_date}"
 year = desired_date.split("-")[0]
-
+month = desired_date.split("-")[1]
+day = int(desired_date.split("-")[2])
+datetime_object = datetime.datetime.strptime(month, "%m")
+month_name = datetime_object.strftime("%b")
+full_month_name = datetime_object.strftime("%B")
 
 response = requests.get(url_top_songs)
 billboard_top_music = response.text
@@ -90,6 +106,7 @@ singers_and_songs = [song.get_text().strip() for song in searching_name]
 singers_list()
 songs_list()
 songs_dict()
+day_date = day_format(day)
 
 print(title_list)
 print(hits)
@@ -112,9 +129,11 @@ print(uri_songs)
 
 #Create a playlist with the input date.
 playlist = sp.user_playlist_create(user=user_id,
-                                   name=f"{desired_date} Billboard 100",
+                                   name=f"{full_month_name} {day_date}, {year} Billboard top 100",
                                    public=False,
-                                   description="This playlist was created according to the top 100 music in some specific date")
+                                   description=f"This playlist was created according \
+                                   to the top 100 billboard of the \
+                                   date: {full_month_name} {day_date}, {year}")
 print(playlist)
 
 

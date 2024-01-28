@@ -13,66 +13,16 @@ client_secret = os.getenv("SPOTIPY_CLIENT_SECRET")
 redirect_URI = os.getenv("SPOTIPY_REDIRECT_URI")
 scope = "playlist-modify-private"
 user_name = os.getenv("SPOTIPY_USER_NAME")
+song_titles = []
+uri_songs = []
+singers = []
+hits = {}
 x = 1
 y = 0
 TOP_N = 1
-#"http://localhost:8888/callback"
-#"http://localhost:8080"
-#"http://localhost"
-#"http://127.0.0.1:9090"
 
 
-#Billboard Hot 100™ – Billboard
-desired_date = input("Which year do you want to travel to? Type the date in this format YYYY-MM-DD: ")
-url_top_songs = f"https://www.billboard.com/charts/hot-100/{desired_date}"
-year = desired_date.split("-")[0]
-
-'''url_top_songs = f"https://www.billboard.com/charts/hot-100/2000-08-12"'''
-
-response = requests.get(url_top_songs)
-billboard_top_music = response.text
-
-'''soup = BeautifulSoup(billboard_top_music, "html.parser", multi_valued_attributes=None)''' #En forma de string
-soup = BeautifulSoup(billboard_top_music, "html.parser") #En forma de lista
-
-title_list = soup.title.get_text()
-print(title_list)
-#print(soup.h3)
-
-#print(soup.h3["class"])
-#print(soup.h3.get_attribute_list ('class'))
-
-'''print(soup.find_all("h3"))'''
-'''print(soup.ul.contents)'''
-
-'''link = soup.h3
-for parent in link.parents:
-    print(parent.name)'''
-
-
-#print(soup.h3.next_sibling)
-
-
-'''for tag in soup.find_all(True): #The value True matches every tag it can.
-    print(tag.name)'''
-
-
-'''print(soup.find(string=re.compile("matchbox")))''' #Search some words you want to search in strings
-searching_name = soup.find_all(class_=re.compile("a-no-trucate"))#Search some words you want to search in class
-'''print(searching_name)'''
-
-singers_and_songs = [song.get_text().strip() for song in searching_name]
-#print(singers_and_songs)
-
-hits = {}
-
-
-#print(hits)
-
-singers = []
-song_titles = []
-#print(len(singers_and_songs))
-
+#Functions.
 def singers_list():
     global x, singers
     for m in range(len(singers_and_songs)):
@@ -81,7 +31,6 @@ def singers_list():
         x += 2
         if x > len(singers_and_songs):
             break
-
 
 def songs_list():
     global y
@@ -102,20 +51,13 @@ def songs_dict():
         hits[f"TOP {TOP_N}"]["Artist"] = singers[h]
         TOP_N += 1
 
-#print(hits)
+def dict_singers_and_songs():
+    global singers, song_titles
+    for p in range(len(song_titles)):
+        print(f"{singers[p]} - {song_titles[p]}")
 
-singers_list()
-songs_list()
-songs_dict()
 
-
-print(song_titles)
-print(singers)
-
-#for p in range(len(song_titles)):
-    #print(f"{singers[p]} - {song_titles[p]}")
-
-# SPOTIFY
+# SPOTIFY AUTHENTICATION.
 sp = spotipy.Spotify(
     auth_manager=SpotifyOAuth(
         client_id=client_ID,
@@ -127,12 +69,35 @@ sp = spotipy.Spotify(
         open_browser=False,))
 
 
-#results = sp.current_user()
 user_id = sp.current_user()["id"]
-print(user_id)
 
-uri_songs = []
+#Billboard Hot 100™ – Billboard
+desired_date = input("Which year do you want to travel to? Type the date in this format YYYY-MM-DD: ")
+url_top_songs = f"https://www.billboard.com/charts/hot-100/{desired_date}"
+year = desired_date.split("-")[0]
 
+
+response = requests.get(url_top_songs)
+billboard_top_music = response.text
+soup = BeautifulSoup(billboard_top_music, "html.parser") #En forma de lista
+
+title_list = soup.title.get_text()
+searching_name = soup.find_all(class_=re.compile("a-no-trucate"))#Search some words you want to search in class
+
+#Songs and singer's interleaved list
+singers_and_songs = [song.get_text().strip() for song in searching_name]
+
+singers_list()
+songs_list()
+songs_dict()
+
+print(title_list)
+print(hits)
+print(song_titles)
+print(singers)
+
+
+#Create a list of URI songs.
 for n in range(len(song_titles)):
     result = sp.search(q=f"artist:{singers[n]} track:{song_titles[n]} year:{year}", type="track", limit=1)
     try:
@@ -144,12 +109,18 @@ for n in range(len(song_titles)):
 
 print(uri_songs)
 
+
+#Create a playlist with the input date.
 playlist = sp.user_playlist_create(user=user_id,
                                    name=f"{desired_date} Billboard 100",
                                    public=False,
                                    description="This playlist was created according to the top 100 music in some specific date")
 print(playlist)
+
+
+#Add tracks into the playlist.
 sp.user_playlist_add_tracks(user=user_id, playlist_id=playlist["id"], tracks=uri_songs)
+print("\nThe songs were added into the playlist.")
 
 
 
